@@ -10,29 +10,23 @@ pub mod tests {
         fn new() {
             let mut list: PriorityList<String> = PriorityList::new();
 
-            list.append_checked("a".to_string(), 0);
-            list.append_checked("c".to_string(), 2);
-            list.append_next("b".to_string());
+            list.push("a".to_string(), None);
+            list.push("c".to_string(), None);
+            list.push("b".to_string(), Some(1));
 
             assert_eq!(vec!["a", "b", "c"], list.get_elements());
 
-            list.append_unchecked("b".to_string(), 2);
-            assert_eq!(vec!["a", "b", "b"], list.get_elements());
-        }
-
-        #[test]
-        fn with_size() {
-            let list: PriorityList<String> = PriorityList::with_priority_range(0, 499);
-            assert_eq!(list.priority_len(), 500);
+            list.push("b".to_string(), Some(2));
+            assert_eq!(vec!["a", "b", "b", "c"], list.get_elements());
         }
 
         #[test]
         fn pop_next() {
             let mut list: PriorityList<String> = PriorityList::new();
 
-            list.append_checked("a".to_string(), 0);
-            list.append_checked("b".to_string(), 1);
-            list.append_checked("c".to_string(), 2);
+            list.push("a".to_string(), 0.into());
+            list.push("b".to_string(), 1.into());
+            list.push("c".to_string(), 2.into());
 
             assert_eq!(Some("a".to_string()), list.pop_next());
             assert_eq!(Some("b".to_string()), list.pop_next());
@@ -47,8 +41,8 @@ pub mod tests {
         fn new() {
             let mut map: PriorityMap<String, u8> = PriorityMap::new();
 
-            map.insert_checked("first".into(), 1, 1);
-            map.insert_next("zero".into(), 0);
+            map.push("first".into(), 1, None);
+            map.push("zero".into(), 0, Some(0));
 
             assert_eq!(
                 vec![(&"zero".into(), &0), (&"first".into(), &1)],
@@ -57,20 +51,14 @@ pub mod tests {
         }
 
         #[test]
-        fn with_size() {
-            let map: PriorityMap<String, u8> = PriorityMap::with_priority_range(0, 499);
-            assert_eq!(map.priority_len(), 500);
-        }
-
-        #[test]
         fn pop_next() {
             let mut map: PriorityMap<String, u8> = PriorityMap::new();
 
-            map.insert_checked("first".into(), 1, 1);
-            map.insert_next("zero".into(), 0);
+            map.push("first".into(), 1, None);
+            map.push("zero".into(), 0, Some(0));
 
-            assert_eq!(Some(("zero".to_string(), 0)), map.pop_next());
-            assert_eq!(Some(("first".to_string(), 1)), map.pop_next());
+            assert_eq!(Some(("zero".to_string(), 0)), map.pop());
+            assert_eq!(Some(("first".to_string(), 1)), map.pop());
         }
     }
 

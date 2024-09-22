@@ -7,77 +7,45 @@ use std::collections::BTreeMap;
 /// An element will be overwritten if a new element with the same priority is added.
 pub struct PriorityList<T> {
     elements: BTreeMap<u32, T>, // (priority, element)
-    min_priority: u32,
-    max_priority: u32,
 }
 
-impl<T> PriorityList<T> {
-    // Create a new PriorityList with a default priority range (0-255)
+impl<T> PriorityList<T>
+where
+    T: Clone,
+{
+    // Create a new PriorityList
     pub fn new() -> Self {
         PriorityList {
             elements: BTreeMap::new(),
-            min_priority: 0,
-            max_priority: 255,
         }
     }
 
-    // Create a new PriorityList with a custom priority range
-    pub fn with_priority_range(min_priority: u32, max_priority: u32) -> Self {
-        PriorityList {
-            elements: BTreeMap::new(),
-            min_priority,
-            max_priority,
-        }
-    }
+    /// Pushes an element with a specific priority, shifting existing elements down if necessary.
+    pub fn push(&mut self, element: T, priority: Option<u32>) {
+        match priority {
+            Some(new_priority) => {
+                // Create a new map to handle shifting
+                let mut new_elements = BTreeMap::new();
 
-    /// Append an element with a specific priority, overwriting any element with the same priority
-    /// This is an unchecked operation, and will panic if the priority is out of range
-    pub fn append_unchecked(&mut self, element: T, priority: u32) {
-        if priority < self.min_priority || priority > self.max_priority {
-            panic!(
-                "Priority {} is out of range ({}-{})",
-                priority, self.min_priority, self.max_priority
-            );
-        }
-        self.elements.insert(priority, element); // Automatically replaces the element at this priority
-    }
-    
-    /// Append an element to the next available priority
-    /// returns true if the element was appended, false if the element was not appended
-    /// False: The element was not appended because the priority was out of range, or taken.
-    /// True: The element was appended because the priority was available.
-    pub fn append_checked(&mut self, element: T, priority: u32) -> bool {
-        if priority < self.min_priority || priority > self.max_priority {
-            return false
-        }
-        if self.elements.contains_key(&priority) {
-            false
-        } else {
-            self.elements.insert(priority, element);
-            true
-        }
-    }
+                // Shift existing items down if their priority is greater than or equal to the new priority
+                for (existing_priority, existing_item) in self.elements.iter() {
+                    if *existing_priority >= new_priority {
+                        new_elements.insert(existing_priority + 1, existing_item.clone());
+                    } else {
+                        new_elements.insert(*existing_priority, existing_item.clone());
+                    }
+                }
 
-    /// Append an element to the next available priority
-    /// Returns the priority of the appended element
-    pub fn append_next(&mut self, element: T) -> u32 {
-        let next_priority = self.find_next_available_priority();
-        self.append_unchecked(element, next_priority);
-        next_priority
-    }
-
-    /// Helper function to find the next available priority
-    /// Will panic if no available priority is found
-    fn find_next_available_priority(&self) -> u32 {
-        for priority in self.min_priority..=self.max_priority {
-            if !self.elements.contains_key(&priority) {
-                return priority;
+                // Insert the new item at its specified priority
+                new_elements.insert(new_priority, element);
+                self.elements = new_elements; // Replace the original map
+            }
+            None => {
+                // Find the next available priority
+                let next_priority = self.elements.len() as u32;
+                self.elements.insert(next_priority, element);
             }
         }
-        panic!(
-            "No available priority in the range ({}-{})",
-            self.min_priority, self.max_priority
-        );
     }
 
     /// Retrieve all elements in priority order
@@ -93,21 +61,6 @@ impl<T> PriorityList<T> {
     /// Get the number of elements
     pub fn len(&self) -> usize {
         self.elements.len()
-    }
-
-    /// Get the total number of priorities available
-    pub fn priority_len(&self) -> usize {
-        self.max_priority as usize - self.min_priority as usize + 1
-    }
-
-    /// Get the priority range
-    pub fn priority_range(&self) -> (u32, u32) {
-        (self.min_priority, self.max_priority)
-    }
-
-    /// Retrieve the element at the specified priority
-    pub fn get_element_at_priority(&self, priority: u32) -> Option<&T> {
-        self.elements.get(&priority)
     }
 
     /// Remove the element at the specified priority
