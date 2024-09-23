@@ -63,7 +63,7 @@ pub mod tests {
     }
 
     pub mod queue {
-        use crate::queue::{prelude::Prioritized, Queue};
+        use crate::queue::{prelude::{LockStatus, Prio}, Queue};
 
         #[test]
         fn new() {
@@ -95,16 +95,99 @@ pub mod tests {
 
             queue.push("first".to_string());
             queue.push("second".to_string());
-            queue.push_prio(Prioritized::new("third".to_string(), 0.into()));
+            queue.push_prio(Prio::new("third".to_string(), 0.into(), LockStatus::Unlocked));
 
             assert_eq!(vec!["third", "first", "second"], queue.get_elements());
         }
     }
+    
+    pub mod lockable_queue {
+        use crate::queue::{lockable::LockableQueue, prelude::{LockStatus, Prio}};
+    
+    
+        #[test]
+        fn new() {
+            let mut queue: LockableQueue<String> = LockableQueue::new();
+    
+            queue.push(Prio::new("first".to_string(), Some(1), LockStatus::Unlocked));
+            queue.push(Prio::new("third".to_string(), Some(0), LockStatus::Locked));
+            queue.push(Prio::new("second".to_string(), Some(2), LockStatus::Unlocked));
+            
+    
+            
+            assert_eq!(vec!["third", "first", "second"], queue.get_elements().iter().map(|item| item.clone()).collect::<Vec<_>>());
+            
+            queue.push(Prio::wolock("fourth".to_string(), Some(0)));
+
+            assert_eq!(vec!["third", "fourth", "first", "second"], queue.get_elements().iter().map(|item| item.clone()).collect::<Vec<_>>());
+            
+        }
+        
+        #[test]
+        fn test_lockable_queue() {
+            let mut queue = LockableQueue::new();
+            
+            queue.push(Prio::new("first", Some(2), LockStatus::Unlocked)); // Priority 2
+            queue.push(Prio::new("second", Some(1), LockStatus::Locked));  // Priority 1 (locked)
+            queue.push(Prio::new("third", Some(1), LockStatus::Unlocked)); // Priority 1 (unlocked)
+            queue.push(Prio::new("fourth", Some(0), LockStatus::Locked));  // Highest priority (locked)
+        
+            let elements = queue.get_elements();
+            
+            // Expected order: ["fourth", "second", "third", "first"]
+            assert_eq!(vec!["fourth", "second", "third", "first"], elements);
+            
+            assert_eq!("fourth".to_string(), queue.pop().unwrap());
+            
+            assert_eq!(vec!["second", "third", "first"], queue.get_elements());
+            
+            queue.push(Prio::new("fifth", Some(0), LockStatus::Locked));
+            
+            assert_eq!(vec!["fifth", "second", "third", "first"], queue.get_elements());
+            
+            queue.push(Prio::new("sixth", Some(0), LockStatus::Locked));
+            
+            assert_eq!(vec!["fifth", "sixth", "second", "third", "first"], queue.get_elements());
+            
+            queue.push(Prio::new("seventh", Some(0), LockStatus::Locked));
+            
+            assert_eq!(vec!["fifth", "sixth", "seventh", "second", "third", "first"], queue.get_elements());
+            
+        }
+        
+        #[test]
+        fn test_unlocked_lockable_queue() {
+            let mut queue = LockableQueue::new();
+            
+            queue.push(Prio::new("first", Some(2), LockStatus::Unlocked)); // Priority 2
+            queue.push(Prio::new("second", Some(1), LockStatus::Unlocked));  // Priority 1 (unlocked)
+            queue.push(Prio::new("third", Some(1), LockStatus::Unlocked)); // Priority 1 (unlocked)
+            queue.push(Prio::new("fourth", Some(0), LockStatus::Unlocked));  // Highest priority (unlocked)
+            
+            assert_eq!(vec!["fourth", "second", "third", "first"], queue.get_elements().iter().map(|item| item.clone()).collect::<Vec<_>>());
+            
+            queue.push(Prio::new("fifth", Some(0), LockStatus::Unlocked));
+            
+            assert_eq!(vec!["fourth", "fifth", "second", "third", "first"], queue.get_elements().iter().map(|item| item.clone()).collect::<Vec<_>>());
+            
+            queue.push(Prio::new("sixth", Some(0), LockStatus::Unlocked));
+            
+            assert_eq!(vec!["fourth", "fifth", "sixth", "second", "third", "first"], queue.get_elements().iter().map(|item| item.clone()).collect::<Vec<_>>());
+            
+            queue.push(Prio::new("seventh", Some(0), LockStatus::Unlocked));
+            
+            assert_eq!(vec!["fourth", "fifth", "sixth", "seventh", "second", "third", "first"], queue.get_elements().iter().map(|item| item.clone()).collect::<Vec<_>>());
+            
+        }
+        
+    
+        
+    }
+
 
     pub mod queue_tuples {
         use crate::queue::Queue;
 
-        use super::*;
 
         #[test]
         fn test_tuple_of_2() {

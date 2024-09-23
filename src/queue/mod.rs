@@ -1,4 +1,4 @@
-use prelude::Prioritized;
+use prelude::Prio;
 
 use crate::queue::prelude::Queueable;
 use std::collections::BTreeMap;
@@ -6,6 +6,7 @@ use std::collections::BTreeMap;
 pub mod list;
 pub mod map;
 pub mod prelude;
+pub mod lockable;
 
 pub struct Queue<T>
 where
@@ -45,7 +46,7 @@ where
     }
 
     /// Pushes a prioritized item to the queue and shifts items at and after the given priority back by one.
-    pub fn push_prio(&mut self, item: Prioritized<T>) {
+    pub fn push_prio(&mut self, item: Prio<T>) {
         if let Some(priority) = item.priority() {
             // Step 1: Collect keys that need to be shifted (in reverse order)
             let keys_to_shift: Vec<u32> = self
