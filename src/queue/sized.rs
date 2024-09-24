@@ -1,51 +1,43 @@
-pub mod prelude;
-pub mod sized;
-
 use std::{
     collections::BTreeMap,
-    sync::{atomic::AtomicU32, LazyLock, Mutex, RwLock},
+    sync::atomic::AtomicU32,
 };
 
-use prelude::{LockStatus, Prio, QueueFlag, Queueable};
+use super::prelude::{Prio, QueueFlag, Queueable};
 
-/// This queue holds data in order of a Priority, Lock, Time order.
-/// 
-/// Pushing to a queue, your element have the `queueable` and `clone` traits.
-/// Elements should be wrapped in a `Prio` struct, which has many helper methods for generating set priorities.
-/// Using prio you can also set your own lock status, and priority numbders.
+
+/// A SizedQueue is a queue that has a maximum element limit.
+/// If the queue is full, new elements added will be rejected, and an error will be returned.
 ///
-/// # Example Usage
-/// ```
-/// use priority::queue::{Queue, prelude::Prio};
+/// You can expand this queue by calling the `expand` method.
+/// Once a queue is expanded, it cannot be shrunk back down.
 ///
-/// let mut queue: Queue<String> = Queue::new();
+/// # Similiarities with `Queue`
+/// #
 ///
-/// queue.push(Prio::new("first".to_string(), Some(1), LockStatus::Unlocked));
-/// queue.push(Prio::new("second".to_string(), Some(2), LockStatus::Unlocked));
-/// queue.push(Prio::new("third".to_string(), Some(1), LockStatus::Locked));
+/// The same mechanics as Queue are applied here to the Size version.
 ///
-/// assert_eq!(vec!["third", "first", "second"], queue.get_elements());
-///
-/// queue.push(Prio::wlip("fourth".to_string()));
-///
-/// assert_eq!(vec!["third", "fourth", "first", "second"], queue.get_elements());
-/// ```
-pub struct Queue<T>(BTreeMap<QueueFlag, T>, AtomicU32)
+/// Locks and priority rules are are still applied here, just a little head cap.
+pub struct SizedQueue<T>(BTreeMap<QueueFlag, T>, AtomicU32, u32)
 where
     T: Queueable + Clone;
 
-impl<T> Queue<T>
+impl<T> SizedQueue<T>
 where
     T: Queueable + Clone,
 {
     /// Creates a new LockableQueue.
-    pub fn new() -> Self {
-        Self(BTreeMap::new(), AtomicU32::new(0))
+    pub fn new(size: u32) -> Self {
+        Self(BTreeMap::new(), AtomicU32::new(0), size)
     }
 
     /// Pushes a prioritized item to the queue.
     /// Returns a unique identifier that can be used to track and retrieve this element in the queue
-    pub fn push(&mut self, item: Prio<T>) -> u32 {
+    pub fn push(&mut self, item: Prio<T>) -> Result<u32, String> {
+        if self.0.len() as u32 >= self.2 {
+            return Err("Queue is full".to_string());
+        }
+
         let priority = item.priority().expect("Priority must be set");
         let locked = item.locked;
 
@@ -54,19 +46,7 @@ where
 
         self.0.insert(new_queue_flag, item.item);
 
-        return new_identifier;
-    }
-    
-    /// Pushes a non-prioritized item to the queue.
-    /// No item pushed through this function will be locked
-    pub fn push_non_prio(&mut self, item: T) -> u32 {
-        let new_identifier = self.1.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-        let new_queue_flag = QueueFlag::new(self.size() as u32 + 1, LockStatus::Unlocked, new_identifier);
-        
-        self.0.insert(new_queue_flag, item);
-        
-        return new_identifier;
-        
+        return Ok(new_identifier);
     }
 
     // Naive linear search through the entire queue
@@ -141,8 +121,22 @@ where
         self.0.len()
     }
 
-    /// Generates a new thread-safe LockableQueue
-    pub const fn thread_safe_new() -> LazyLock<RwLock<Mutex<Queue<T>>>> {
-        LazyLock::new(|| RwLock::new(Mutex::new(Queue::<T>::new()))) 
+    /// Returns the maximum size of the queue
+    pub fn max_size(&self) -> u32 {
+        self.2
     }
+    
+    /// Increases the maximum size of the queue
+    ///
+    /// Once a queue is expanded, it cannot be shrunk back down.
+    pub fn expand(&mut self, size: usize) {
+        self.2 += size as u32;
+    }
+    
+    /// Returns a percentage of the queue's size
+    pub fn percentage_full(&self) -> f32 {
+        (self.0.len() as f32 / self.2 as f32) * 100.0
+    }
+
+
 }

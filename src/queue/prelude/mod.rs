@@ -7,8 +7,6 @@ use std::{
     time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
-use uuid::Uuid;
-
 impl Queueable for &str {}
 impl Queueable for String {}
 
@@ -251,7 +249,7 @@ pub enum LockStatus {
     Locked,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Prio<T>
 where
     T: Queueable + Clone,

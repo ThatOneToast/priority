@@ -4,8 +4,4 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-
-
-[dependencies.uuid]
-version = "1.10.0"
-features = ["v4", "fast-rng", "macro-diagnostics"]
+rand = "0.8.5"
