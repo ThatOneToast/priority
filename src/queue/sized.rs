@@ -113,9 +113,12 @@ where
     
     /// Peeks the next item in the queue.
     /// Returns a reference to the next item in the queue.
-    pub fn peek(&self) -> Option<&T> {
+    /// Returns the identifier of the item.
+    pub fn peek(&self) -> Option<(&T, u32)> {
         let lowest_flag = self.0.keys().next().cloned();
-        return self.0.get(&lowest_flag.unwrap());
+        let element = self.0.get(&lowest_flag.unwrap());
+        let identifier = lowest_flag.unwrap().identifier;
+        return element.map(|e| (e, identifier));
     }
 
     /// Returns all elements in the queue as a Vec.
