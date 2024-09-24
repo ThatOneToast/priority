@@ -110,6 +110,13 @@ where
         }
         None
     }
+    
+    /// Peeks the next item in the queue.
+    /// Returns a reference to the next item in the queue.
+    pub fn peek(&self) -> Option<&T> {
+        let lowest_flag = self.0.keys().next().cloned();
+        return self.0.get(&lowest_flag.unwrap());
+    }
 
     /// Returns all elements in the queue as a Vec.
     pub fn get_elements(&self) -> Vec<T> {
