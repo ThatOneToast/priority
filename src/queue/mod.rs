@@ -8,28 +8,12 @@ use std::{
 
 use prelude::{LockStatus, Prio, QueueFlag, Queueable};
 
+
 /// This queue holds data in order of a Priority, Lock, Time order.
 /// 
 /// Pushing to a queue, your element have the `queueable` and `clone` traits.
 /// Elements should be wrapped in a `Prio` struct, which has many helper methods for generating set priorities.
 /// Using prio you can also set your own lock status, and priority numbders.
-///
-/// # Example Usage
-/// ```
-/// use priority::queue::{Queue, prelude::Prio};
-///
-/// let mut queue: Queue<String> = Queue::new();
-///
-/// queue.push(Prio::new("first".to_string(), Some(1), LockStatus::Unlocked));
-/// queue.push(Prio::new("second".to_string(), Some(2), LockStatus::Unlocked));
-/// queue.push(Prio::new("third".to_string(), Some(1), LockStatus::Locked));
-///
-/// assert_eq!(vec!["third", "first", "second"], queue.get_elements());
-///
-/// queue.push(Prio::wlip("fourth".to_string()));
-///
-/// assert_eq!(vec!["third", "fourth", "first", "second"], queue.get_elements());
-/// ```
 pub struct Queue<T>(BTreeMap<QueueFlag, T>, AtomicU32)
 where
     T: Queueable + Clone;
@@ -125,6 +109,17 @@ where
         let lowest_flag = self.0.keys().next().cloned();
 
         if let Some(flag) = lowest_flag {
+            let value = self.0.remove(&flag).unwrap();
+            return Some(value);
+        }
+        None
+    }
+    
+    /// Pops an element based on the id
+    pub fn pop_by_id(&mut self, id: u32) -> Option<T> {
+        let flag = self.0.keys().find(|&f| f.identifier == id).cloned();
+        
+        if let Some(flag) = flag {
             let value = self.0.remove(&flag).unwrap();
             return Some(value);
         }
