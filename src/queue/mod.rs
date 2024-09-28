@@ -139,6 +139,11 @@ where
     pub fn get_elements(&self) -> Vec<T> {
         self.0.values().cloned().collect()
     }
+    
+    /// Returns a copy of the entire queue
+    pub fn all(&self) -> BTreeMap<QueueFlag, T> {
+        self.0.clone()
+    }
 
     /// Returns the size of the queue
     pub fn size(&self) -> usize {
